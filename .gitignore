@@ -1,2 +1,5 @@
 .envrc
 .env
+
+# ローカルのoverride設定（必要に応じてコメントアウト解除）
+# docker-compose.override.yml

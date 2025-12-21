@@ -1,0 +1,50 @@
+# ローカル開発用オーバーライド設定
+# docker compose up で自動的に読み込まれます
+#
+# EC2では使わない場合:
+#   docker compose -f docker-compose.yml up -d
+
+services:
+  langfuse-web:
+    # ローカルではlocalhost:3000でアクセス
+    environment:
+      NEXTAUTH_URL: http://localhost:3000
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+
+  langfuse-worker:
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+
+  postgres:
+    # ローカルで5432が使用中の場合はポート変更
+    ports:
+      - "127.0.0.1:5433:5432"
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+
+  clickhouse:
+    # Mac用: ulimitsを削除（override）
+    ulimits: {}
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+
+  redis:
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  minio:
+    deploy:
+      resources:
+        limits:
+          memory: 512M
