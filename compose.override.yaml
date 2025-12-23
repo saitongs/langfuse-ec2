@@ -2,7 +2,7 @@
 # docker compose up で自動的に読み込まれます
 #
 # EC2では使わない場合:
-#   docker compose -f docker-compose.yml up -d
+#   docker compose -f compose.yaml up -d
 
 services:
   langfuse-web:

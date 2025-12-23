@@ -99,8 +99,8 @@ docker compose logs -f langfuse-web
 
 ```
 langfuse-ec2/
-├── docker-compose.yml          # メイン設定
-├── docker-compose.override.yml # ローカルMac用設定（自動適用）
+├── compose.yaml                # メイン設定
+├── compose.override.yaml       # ローカルMac用設定（自動適用）
 ├── .env.example                # 環境変数テンプレート
 ├── .env                        # 実際の環境変数（git管理外）
 ├── setup.sh                    # セットアップスクリプト
@@ -118,7 +118,7 @@ langfuse-ec2/
 
 ## ローカル（Mac）での起動
 
-`docker-compose.override.yml` が自動で適用されます。
+`compose.override.yaml` が自動で適用されます。
 
 ```bash
 ./setup.sh
@@ -156,7 +156,7 @@ docker compose up -d
 docker compose down -v
 ```
 
-## 公式docker-compose.ymlとの差分
+## 公式との差分
 
 | 項目 | 公式 | 本リポジトリ | 変更理由 |
 |------|------|-------------|----------|
