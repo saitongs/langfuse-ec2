@@ -170,7 +170,6 @@ docker compose down -v
 | テレメトリ | 有効 | 無効 | プライバシー配慮 |
 | Redis永続化 | なし | `appendonly yes` | データ保護 |
 | イメージ | 標準 | alpine版 | イメージサイズ削減 |
-| CLICKHOUSE_CLUSTER_ENABLED | 記載なし | `false`明示 | シングルノードでのエラー回避 |
 
 ### 変更理由の詳細
 
@@ -179,13 +178,6 @@ docker compose down -v
 - 機密情報をgit管理から除外
 - 環境ごとの設定切り替えが容易
 - `setup.sh` による自動生成が可能
-
-#### CLICKHOUSE_CLUSTER_ENABLED=false
-公式では暗黙的に設定されていますが、明示しないと以下のエラーが発生する場合があります：
-```
-error: There is no Zookeeper configuration in server config
-```
-シングルノード構成では Zookeeper/クラスター機能が不要なため明示的に無効化。
 
 #### RustFS（MinIOの代替）
 MinIOは2025年にDockerイメージの更新を停止し、既知のCVEが放置された状態になりました。
