@@ -28,7 +28,7 @@ LangfuseをEC2 1台構成でDocker Composeを使って運用するための設�
                     └──────────┬──────────┘
                                │
                     ┌──────────▼──────────┐
-                    │       MinIO         │
+                    │       RustFS        │
                     │   (S3互換storage)   │
                     └─────────────────────┘
 ```
@@ -161,11 +161,12 @@ docker compose down -v
 | 項目 | 公式 | 本リポジトリ | 変更理由 |
 |------|------|-------------|----------|
 | 環境変数管理 | ハードコード（CHANGEME） | `.env`ファイルで外部化 | セキュリティ向上・管理容易化 |
-| MinIO APIポート | 9090 | 9001 | ClickHouseの9000と混同しにくい |
-| MinIO Consoleポート | 9091 | 9002 | 連番で統一 |
+| S3互換ストレージ | MinIO | RustFS | MinIOのDockerイメージ更新停止・ライセンス問題 |
+| S3 APIポート | 9090 | 9010 | ClickHouseの9000と競合回避 |
+| S3 Consoleポート | 9091 | 9011 | 連番で統一 |
 | PostgreSQLユーザー | postgres | langfuse | 専用ユーザーで権限分離 |
 | ボリューム名 | `langfuse_`プレフィックス | プレフィックスなし | シンプル化 |
-| バケット初期化 | なし | `minio-init`で自動作成 | 手動作業不要 |
+| バケット初期化 | なし | `rustfs-init`で自動作成 | 手動作業不要 |
 | テレメトリ | 有効 | 無効 | プライバシー配慮 |
 | Redis永続化 | なし | `appendonly yes` | データ保護 |
 | イメージ | 標準 | alpine版 | イメージサイズ削減 |
@@ -186,8 +187,18 @@ error: There is no Zookeeper configuration in server config
 ```
 シングルノード構成では Zookeeper/クラスター機能が不要なため明示的に無効化。
 
-#### minio-init サービス追加
-公式では手動でバケット作成が必要ですが、初回起動時に自動作成することで：
+#### RustFS（MinIOの代替）
+MinIOは2025年にDockerイメージの更新を停止し、既知のCVEが放置された状態になりました。
+また、コミュニティ版の機能制限も進んでいます。
+
+RustFSを採用した理由：
+- Apache 2.0ライセンス（AGPLの制約なし）
+- 100% S3互換
+- 軽量で高速（MinIOより2.3倍高速との報告あり）
+- 積極的にメンテナンスされている
+
+#### rustfs-init サービス追加
+公式では手動でバケット作成が必要ですが、初回起動時にAWS CLIで自動作成することで：
 - 手順の簡略化
 - 起動直後からすぐ使える状態に
 
@@ -206,15 +217,17 @@ langfuse-clickhouse | get_mempolicy: Operation not permitted
 
 **問題なし**。DockerコンテナではNUMA最適化の権限がないための警告で、動作に影響しません。
 
-### MinIO: Access Denied
+### RustFS: バケット作成失敗
 
-```
-mc: <ERROR> Unable to make bucket `myminio/langfuse`. Access Denied.
-```
-
-環境変数が正しく渡されていない可能性があります。以下を確認：
+バケット作成に失敗する場合は、環境変数が正しく渡されていない可能性があります：
 ```bash
-docker compose logs minio-init
+docker compose logs rustfs-init
+```
+
+RustFSが起動するまで時間がかかる場合があるため、手動で再実行：
+```bash
+docker compose rm -sf rustfs-init
+docker compose up -d rustfs-init
 ```
 
 ### メモリ不足

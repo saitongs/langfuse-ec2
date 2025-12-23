@@ -15,7 +15,7 @@ services:
         condition: service_healthy
       clickhouse:
         condition: service_healthy
-      minio:
+      rustfs:
         condition: service_started
     environment:
       # Database
@@ -37,20 +37,20 @@ services:
       SALT: ${SALT}
       ENCRYPTION_KEY: ${ENCRYPTION_KEY}
 
-      # S3/MinIO - Event Upload
+      # S3/RustFS - Event Upload
       LANGFUSE_S3_EVENT_UPLOAD_BUCKET: langfuse
       LANGFUSE_S3_EVENT_UPLOAD_REGION: us-east-1
-      LANGFUSE_S3_EVENT_UPLOAD_ACCESS_KEY_ID: ${MINIO_ROOT_USER}
-      LANGFUSE_S3_EVENT_UPLOAD_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD}
-      LANGFUSE_S3_EVENT_UPLOAD_ENDPOINT: http://minio:9000
+      LANGFUSE_S3_EVENT_UPLOAD_ACCESS_KEY_ID: ${S3_ROOT_USER}
+      LANGFUSE_S3_EVENT_UPLOAD_SECRET_ACCESS_KEY: ${S3_ROOT_PASSWORD}
+      LANGFUSE_S3_EVENT_UPLOAD_ENDPOINT: http://rustfs:9000
       LANGFUSE_S3_EVENT_UPLOAD_FORCE_PATH_STYLE: "true"
 
-      # S3/MinIO - Media Upload
+      # S3/RustFS - Media Upload
       LANGFUSE_S3_MEDIA_UPLOAD_BUCKET: langfuse
       LANGFUSE_S3_MEDIA_UPLOAD_REGION: us-east-1
-      LANGFUSE_S3_MEDIA_UPLOAD_ACCESS_KEY_ID: ${MINIO_ROOT_USER}
-      LANGFUSE_S3_MEDIA_UPLOAD_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD}
-      LANGFUSE_S3_MEDIA_UPLOAD_ENDPOINT: http://minio:9000
+      LANGFUSE_S3_MEDIA_UPLOAD_ACCESS_KEY_ID: ${S3_ROOT_USER}
+      LANGFUSE_S3_MEDIA_UPLOAD_SECRET_ACCESS_KEY: ${S3_ROOT_PASSWORD}
+      LANGFUSE_S3_MEDIA_UPLOAD_ENDPOINT: http://rustfs:9000
       LANGFUSE_S3_MEDIA_UPLOAD_FORCE_PATH_STYLE: "true"
 
       # Optional
@@ -75,7 +75,7 @@ services:
         condition: service_healthy
       clickhouse:
         condition: service_healthy
-      minio:
+      rustfs:
         condition: service_started
     environment:
       # Database
@@ -96,12 +96,12 @@ services:
       SALT: ${SALT}
       ENCRYPTION_KEY: ${ENCRYPTION_KEY}
 
-      # S3/MinIO
+      # S3/RustFS
       LANGFUSE_S3_EVENT_UPLOAD_BUCKET: langfuse
       LANGFUSE_S3_EVENT_UPLOAD_REGION: us-east-1
-      LANGFUSE_S3_EVENT_UPLOAD_ACCESS_KEY_ID: ${MINIO_ROOT_USER}
-      LANGFUSE_S3_EVENT_UPLOAD_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD}
-      LANGFUSE_S3_EVENT_UPLOAD_ENDPOINT: http://minio:9000
+      LANGFUSE_S3_EVENT_UPLOAD_ACCESS_KEY_ID: ${S3_ROOT_USER}
+      LANGFUSE_S3_EVENT_UPLOAD_SECRET_ACCESS_KEY: ${S3_ROOT_PASSWORD}
+      LANGFUSE_S3_EVENT_UPLOAD_ENDPOINT: http://rustfs:9000
       LANGFUSE_S3_EVENT_UPLOAD_FORCE_PATH_STYLE: "true"
 
   # ===================
@@ -163,34 +163,35 @@ services:
       timeout: 5s
       retries: 5
 
-  minio:
-    image: minio/minio:latest
-    container_name: langfuse-minio
+  rustfs:
+    image: rustfs/rustfs:latest
+    container_name: langfuse-rustfs
     restart: unless-stopped
+    user: "10001:10001"
     ports:
-      - "127.0.0.1:9001:9000"   # API
-      - "127.0.0.1:9002:9002"   # Console
+      - "127.0.0.1:9010:9000"   # S3 API
+      - "127.0.0.1:9011:9001"   # Console
     volumes:
-      - minio_data:/data
+      - rustfs_data:/data
+      - rustfs_logs:/logs
     environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
-    command: server /data --console-address ":9002"
+      RUSTFS_ROOT_USER: ${S3_ROOT_USER}
+      RUSTFS_ROOT_PASSWORD: ${S3_ROOT_PASSWORD}
 
-  # MinIO bucket initialization
-  minio-init:
-    image: minio/mc:latest
-    container_name: langfuse-minio-init
+  # RustFS bucket initialization
+  rustfs-init:
+    image: amazon/aws-cli:latest
+    container_name: langfuse-rustfs-init
     depends_on:
-      - minio
+      - rustfs
     environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      AWS_ACCESS_KEY_ID: ${S3_ROOT_USER}
+      AWS_SECRET_ACCESS_KEY: ${S3_ROOT_PASSWORD}
+      AWS_DEFAULT_REGION: us-east-1
     entrypoint: >
       /bin/sh -c "
-      sleep 10;
-      mc alias set myminio http://minio:9000 $$MINIO_ROOT_USER $$MINIO_ROOT_PASSWORD;
-      mc mb myminio/langfuse --ignore-existing;
+      sleep 15;
+      aws --endpoint-url http://rustfs:9000 s3 mb s3://langfuse || true;
       exit 0;
       "
 
@@ -199,4 +200,5 @@ volumes:
   clickhouse_data:
   clickhouse_logs:
   redis_data:
-  minio_data:
+  rustfs_data:
+  rustfs_logs:

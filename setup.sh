@@ -26,7 +26,7 @@ generate_password() {
 POSTGRES_PASSWORD=$(generate_password)
 CLICKHOUSE_PASSWORD=$(generate_password)
 REDIS_PASSWORD=$(generate_password)
-MINIO_ROOT_PASSWORD=$(generate_password)
+S3_ROOT_PASSWORD=$(generate_password)
 NEXTAUTH_SECRET=$(openssl rand -base64 32)
 SALT=$(openssl rand -base64 32)
 ENCRYPTION_KEY=$(openssl rand -hex 32)
@@ -56,10 +56,10 @@ CLICKHOUSE_PASSWORD=${CLICKHOUSE_PASSWORD}
 REDIS_PASSWORD=${REDIS_PASSWORD}
 
 # ===================
-# MinIO (S3互換ストレージ)
+# RustFS (S3互換ストレージ)
 # ===================
-MINIO_ROOT_USER=langfuse
-MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
+S3_ROOT_USER=langfuse
+S3_ROOT_PASSWORD=${S3_ROOT_PASSWORD}
 
 # ===================
 # Langfuse Auth
